@@ -1,18 +1,9 @@
-import os
 import settings
 import pickle
-import pandas as pd
 import numpy as np
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import svm
-from sklearn import neighbors
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
-import copy
+
+from operator import itemgetter
+
 
 def pickle_write(filename, model):
     """Save model to disk
@@ -47,8 +38,7 @@ def test_algorithm(algorithm, df_test):
     Returns:
         list: predictions for every instance in the test data
     """
-    #NEED TO FIX HERE
-    #if settings.include_GPS:
+
     noGPS_filename = settings.models + "/" + algorithm['type'] + '_noGPS.pkl'
 
     # if not os.path.isfile(fastslow_filename):
@@ -61,6 +51,21 @@ def test_algorithm(algorithm, df_test):
     noGPS_model_pkl.close()
 
     noGPS_predictions = noGPS_model.predict(np.array(df_test.iloc[:, 0:15]))
+    probabilities = noGPS_model.predict_proba(np.array(df_test.iloc[:, 0:15]))
+
+    primary_probabilities = list()
+    primary_predictions = list()
+    secondary_probabilities = list()
+    secondary_predictions = list()
+
+    for row, row_prob in enumerate(probabilities):
+        pairs = [(i, row_prob[i]) for i in range(len(row_prob))]  # (index, prob) for each class for data point i
+        pairs.sort(key=itemgetter(1), reverse=True)  # Sort list of tuples based on prob value
+
+        primary_predictions.append(noGPS_model.classes_[pairs[0][0]])
+        primary_probabilities.append(pairs[0][1])
+        secondary_predictions.append(noGPS_model.classes_[pairs[1][0]])
+        secondary_probabilities.append(pairs[1][1])
 
     predictions = list()
     accgps = list()
@@ -72,5 +77,8 @@ def test_algorithm(algorithm, df_test):
 
     predictions = np.append([predictions], [df_test['Start'].values], axis=0)
     predictions = np.append(predictions, [df_test['End'].values], axis=0)
-    predictions = np.append(predictions, [accgps], axis=0)
+    predictions = np.append(predictions, [primary_probabilities], axis=0)
+    predictions = np.append(predictions, [primary_predictions], axis=0)
+    predictions = np.append(predictions, [secondary_probabilities], axis=0)
+    predictions = np.append(predictions, [secondary_predictions], axis=0)
     return predictions

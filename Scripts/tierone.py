@@ -46,7 +46,7 @@ def gen_output_window(algorithm, features_file, output_file):  # mueller_col, da
         list: returns the time spent doing each activity, the previous mueller index, and the current mueller index
     """
 
-    header = ['Predicted', 'Start', 'End']
+    header = ['Predicted', 'Start', 'End', 'Primary Probability', 'Primary Prediction', 'Secondary Probability', 'Secondary Prediction']
     test_data = pd.read_csv(features_file)
 
     try:
@@ -69,6 +69,10 @@ def gen_output_window(algorithm, features_file, output_file):  # mueller_col, da
         start = clf_activities[1][index]
         # start_next = test_data.iloc[index + 1, 16]
         end = clf_activities[2][index]
+        primary_prob = clf_activities[3][index]
+        primary_pred = clf_activities[4][index]
+        secondary_prob = clf_activities[5][index]
+        secondary_pred = clf_activities[6][index]
         cur_time = float(end) - float(start)
 
         start_time = datetime.utcfromtimestamp(float(float(start) / 1000)).strftime('%m-%d-%Y %H:%M:%S.%f')[:-3]
@@ -98,5 +102,5 @@ def gen_output_window(algorithm, features_file, output_file):  # mueller_col, da
         elif cur_activity == 'sitt':
             cur_activity = 'sitting'
 
-        writer.writerow([cur_activity, start_time, end_time])
+        writer.writerow([cur_activity, start_time, end_time, primary_prob, primary_pred, secondary_prob, secondary_pred])
     w.close()
