@@ -2,6 +2,7 @@ import settings
 import os
 from datetime import datetime
 
+# File path is absolute file path
 def get_transition_times_from_file(file_path):
     transition_times = set()
     with open(file_path, 'r') as f:
@@ -22,8 +23,8 @@ def get_transition_times_from_file(file_path):
                 except Exception as e:
                     print(e)
 
-            transition_times.add(start_time.isoformat())
-            transition_times.add(end_time.isoformat())
+            transition_times.add(start_time)
+            transition_times.add(end_time)
         transition_list = list(transition_times)
         transition_list.sort()
 
