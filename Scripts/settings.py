@@ -20,6 +20,8 @@ def init():
     sampling_rate = 30
     global include_GPS
     include_GPS = False
+    global scripts
+    scripts = os.getcwd()
 
     os.chdir(os.path.dirname(os.getcwd()))
 
@@ -30,6 +32,8 @@ def init():
     phase_1_features = os.getcwd() + "/Data/phase_1/features"
     global phase_1_output
     phase_1_output = os.getcwd() + "/Data/phase_1/output"
+    global models
+    models = os.getcwd() + "/Data/models"
 
     # Phase 2
     global phase_2_raw

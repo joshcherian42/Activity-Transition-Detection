@@ -49,7 +49,7 @@ def test_algorithm(algorithm, df_test):
     """
     #NEED TO FIX HERE
     #if settings.include_GPS:
-    noGPS_filename = settings.models + algorithm['type'] + '_noGPS.pkl'
+    noGPS_filename = settings.models + "/" + algorithm['type'] + '_noGPS.pkl'
 
     # if not os.path.isfile(fastslow_filename):
     #     train_algorithms(copy.copy(algorithm))
@@ -60,8 +60,7 @@ def test_algorithm(algorithm, df_test):
     noGPS_model = pickle.load(noGPS_model_pkl)
     noGPS_model_pkl.close()
 
-    df_noGPS = df_test[df_test['GPS Speed'] == -1]
-    noGPS_predictions = noGPS_model.predict(np.array(df_noGPS.iloc[:, 0:15]))
+    noGPS_predictions = noGPS_model.predict(np.array(df_test.iloc[:, 0:15]))
 
     predictions = list()
     accgps = list()
