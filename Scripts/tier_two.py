@@ -52,14 +52,28 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
         point['output'] = 0
         data_points.append(point)
 
-    # Change output class to 1 if it is a transition
+    # Change output class to 1 if it is a transition. Remove if it's more than 5 min from a transition time
     transition_times = travel_logs.get_transition_times_from_file(os.path.join(settings.phase_2_raw, phase_2_raw_file))
     data_idx = 0
-    for time in transition_times:
+    for i, transition_time in enumerate(transition_times):
         while data_idx < len(data_points):
-            if data_points[data_idx]['time'] > time:
+            diff = data_points[data_idx]['time'] - transition_time # Time diff to next transition
+            diff = diff.total_seconds()
+            # print diff.total_seconds()
+            # print abs(diff.total_seconds()) > 300
+            diff2 = 301
+            if i != 0:
+                diff2 = data_points[data_idx]['time'] - transition_times[i - 1] # Time diff to previous transition
+                diff2 = diff2.total_seconds()
+
+            if abs(diff) > 300 and abs(diff2) > 300:
+                data_points.pop(data_idx)
+                continue
+
+            if data_points[data_idx]['time'] > transition_time:
                 data_points[data_idx]['output'] = 1
                 break # Out of while loop but continue for loop
+
             data_idx += 1
 
     with open(os.path.join(settings.phase_2_features, phase_2_raw_file), 'w+') as fout:
@@ -82,17 +96,19 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
 
 settings.init()
 paths = []
+pre_windows = 4
+post_windows = 4
 base_name = ''
 for subdir, dirs, files in os.walk(settings.phase_1_output):
-        for cur_file in sorted(files, key=settings.natural_keys):
-            if cur_file.endswith('.csv'):
-                cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
-                if base_name == '':
-                    base_name = cur_base_name
-                if cur_base_name != base_name: # Changed to a new user
-                    generate_features(paths, base_name + '.csv', 5, 5)
-                    base_name = cur_base_name
-                    paths = []
-                else:
-                    paths.append(cur_file)
+    for cur_file in sorted(files, key=settings.natural_keys):
+        if cur_file.endswith('.csv'):
+            cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
+            if base_name == '':
+                base_name = cur_base_name
+            if cur_base_name != base_name: # Changed to a new user
+                generate_features(paths, base_name + '.csv', pre_windows, post_windows)
+                base_name = cur_base_name
+                paths = [cur_file]
+            else:
+                paths.append(cur_file)
 
