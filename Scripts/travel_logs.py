@@ -14,12 +14,12 @@ def get_transition_times_from_file(file_path):
             if not split_line[0].isdigit(): # Header or separator row
                 continue
             try: # Check if times have seconds included
-                start_time = datetime.strptime(log_date + ' ' + log_start, '%m/%d/%Y %H:%M:%S %p')
-                end_time = datetime.strptime(log_date + ' ' + log_end, '%m/%d/%Y %H:%M:%S %p')
+                start_time = datetime.strptime(log_date + ' ' + log_start, '%m/%d/%Y %I:%M:%S %p')
+                end_time = datetime.strptime(log_date + ' ' + log_end, '%m/%d/%Y %I:%M:%S %p')
             except Exception as e:
                 try: # Time just has hours and minutes
-                    start_time = datetime.strptime(log_date + ' ' + log_start, '%m/%d/%Y %H:%M %p')
-                    end_time = datetime.strptime(log_date + ' ' + log_end, '%m/%d/%Y %H:%M %p')
+                    start_time = datetime.strptime(log_date + ' ' + log_start, '%m/%d/%Y %I:%M %p')
+                    end_time = datetime.strptime(log_date + ' ' + log_end, '%m/%d/%Y %I:%M %p')
                 except Exception as e:
                     print(e)
 
