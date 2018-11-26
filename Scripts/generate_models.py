@@ -1,9 +1,79 @@
 import settings
+import os
 import pickle
+import pandas as pd
 import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
+from sklearn import svm
+from sklearn import neighbors
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import accuracy_score
 
 from operator import itemgetter
 
+def generate_models():
+    df = pd.DataFrame()
+    for subdir, dirs, files in os.walk(settings.phase_2_features):
+        for cur_file in sorted(files, key=settings.natural_keys):
+            temp_df = pd.read_csv(os.path.join(subdir, cur_file))
+            df = pd.concat([df, temp_df], ignore_index=True)
+    times = df['time'].values
+    df = df.drop('time', axis=1)
+    #df.to_csv('all_features.csv')
+    labels = df.drop('output', axis=1).keys().values
+    x = df.drop('output', axis=1).values
+    y = df['output']
+    y_predict_all = [0 for i in range(len(y))]
+
+    #clf = RandomForestClassifier(random_state=42)
+    clf = GradientBoostingClassifier(random_state=42, learning_rate=0.5)
+    #clf = AdaBoostClassifier(random_state=42)
+    skf = StratifiedKFold(n_splits=5, random_state=42)
+
+    for train_index, test_index in skf.split(x, y):
+        x_train, x_test = x[train_index], x[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        clf.fit(x_train, y_train)
+        y_predict = clf.predict(x_test)
+
+        print "Predicted", sum(y_predict)
+        print "Actual", sum(y_test)
+
+        for i in range(len(y_predict)):
+            y_predict_all[test_index[i]] = y_predict[i]
+
+    # Avg distance to a positive point
+    total_dist = 0
+    dists = {}
+    for i in range(len(y_predict_all)):
+        if y_predict_all[i] == 1 and y[i] != 1:
+            delta = 1  # +/- 1, 2, 3, etc.
+            l_idx = max(0, i - delta)
+            r_idx = min(i + delta, len(y_predict_all) - 1)
+            while l_idx != 0 and r_idx != len(y_predict_all) - 1:
+                if y[l_idx] == 1 or y[r_idx] == 1:
+                    total_dist += delta
+                    dists[times[i]] = delta
+                    print times[i], delta
+                    break
+                delta += 1
+                l_idx = max(0, i - delta)
+                r_idx = min(i + delta, len(y_predict_all) - 1)
+
+    # with open('temp.csv', 'w+') as f:
+    #     for i in range(len(y_predict_all)):
+    #         f.write(str(y[i]) + ',' + str(y_predict_all[i]) + '\n')
+
+    # for k in dists:
+    #     print k, dists[k]
+    print total_dist / float(sum(y_predict_all))
+
+settings.init()
+generate_models()
 
 def pickle_write(filename, model):
     """Save model to disk
