@@ -15,6 +15,69 @@ from sklearn.metrics import accuracy_score
 
 from operator import itemgetter
 
+def get_confusion_matrix(y_predict, y_actual, margin, remove_fp_in_margin):
+    tp = 0
+    fp = 0
+    tn = 0
+    fn = 0
+    accounted_for = [False for i in y_predict]
+
+    def nearest_predict_true(predict, actual, actual_idx, margin, remove_fp_in_margin):
+        delta = 0
+        l_idx = max(0, i - delta)
+        r_idx = min(i + delta, len(predict) - 1)
+        return_val = -1
+        while l_idx > actual_idx - margin - 1 and r_idx < actual_idx + margin + 1:
+            if predict[l_idx] == 1 and not accounted_for[l_idx]:
+                accounted_for[l_idx] = True
+                if not remove_fp_in_margin:
+                    return l_idx
+                if return_val == -1:
+                    return_val = l_idx
+            if predict[r_idx] == 1 and not accounted_for[r_idx]:
+                accounted_for[r_idx] = True
+                if not remove_fp_in_margin:
+                    return r_idx
+                if return_val == -1:
+                    return_val = r_idx
+
+            delta += 1
+            l_idx = max(0, i - delta)
+            r_idx = min(i + delta, len(predict) - 1)
+        return return_val
+
+    for i in range(len(y_actual)):
+        if y_actual[i] == 1: # Actual positive. We either got it (TP) or we didn't (FN)
+            nearest_pred = nearest_predict_true(y_predict, y_actual, i, margin, remove_fp_in_margin)
+            if nearest_pred == -1 and not accounted_for[i]: # We did not predict this transition so add a FN
+                fn += 1
+                accounted_for[i] = True
+            #elif not accounted_for[nearest_pred]: # Prediction in the window and we haven't added it to values
+            else:
+                tp += 1
+                #accounted_for[nearest_pred] = True
+
+    for i in range(len(y_actual)): # Now count everything else which is either a FP or TN since all TP and FN have been counted
+        if not accounted_for[i]:
+            if y_predict[i] == 1:
+                fp += 1
+            else:
+                tn += 1
+            accounted_for[i] = True
+
+    return {'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn}
+
+def print_confusion_matrix(m):
+    print 'TP:', m['tp']
+    print 'FP:', m['fp']
+    print 'FN:', m['fn']
+    print 'TN:', m['tn']
+    recall = float(m['tp']) / (m['tp'] + m['fn'])
+    precision = float(m['tp']) / (m['tp'] + m['fp'])
+    print 'Recall:', recall
+    print 'Precision:', precision
+    print 'f-score:', 2*precision*recall / (precision + recall)
+
 def generate_models():
     df = pd.DataFrame()
     for subdir, dirs, files in os.walk(settings.phase_2_features):
@@ -58,11 +121,14 @@ def generate_models():
                 if y[l_idx] == 1 or y[r_idx] == 1:
                     total_dist += delta
                     dists[times[i]] = delta
-                    print times[i], delta
+                    # print times[i], delta
                     break
                 delta += 1
                 l_idx = max(0, i - delta)
                 r_idx = min(i + delta, len(y_predict_all) - 1)
+
+    confusion_matrix = get_confusion_matrix(y_predict_all, y, 10, True)
+    print_confusion_matrix(confusion_matrix)
 
     # with open('temp.csv', 'w+') as f:
     #     for i in range(len(y_predict_all)):
