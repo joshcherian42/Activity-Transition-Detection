@@ -78,15 +78,15 @@ if __name__ == "__main__":
 
     # generate_models.train_algorithms(copy.deepcopy(params))
     # generate_test_data.process_file(13635, 'Amaryllis_9.8.2017_2017-09-06_Hr_10.csv')
-    start_messages = [#'Extracting Testing Features',
+    start_messages = ['Extracting Testing Features',
                       'Classifying Activities']
                       #'Correcting Classifications']
 
-    functions = [#[generate_test_data, 'main'],
+    functions = [[generate_test_data, 'main'],
                  [tierone, 'gen_output']]
                  #[tierone, 'correct_output']]
 
-    function_args = [#[phase_one],
+    function_args = [[phase_one],
                      [algorithm]]
                      #[False if settings.trial == 'Team Data' else True, phase_one, tier_two_size, scoring_function, trial, paths]]
 

@@ -72,8 +72,8 @@ def generate_models():
     #     print k, dists[k]
     print total_dist / float(sum(y_predict_all))
 
-settings.init()
-generate_models()
+# settings.init()
+# generate_models()
 
 def pickle_write(filename, model):
     """Save model to disk
@@ -109,41 +109,104 @@ def test_algorithm(algorithm, df_test):
         list: predictions for every instance in the test data
     """
 
+    fastslow_filename = settings.models + "/" + algorithm['type'] + '_fastslow.pkl'
     noGPS_filename = settings.models + "/" + algorithm['type'] + '_noGPS.pkl'
+    fast_filename = settings.models + "/" + algorithm['type'] + '_fast.pkl'
+    slow_filename = settings.models + "/" + algorithm['type'] + '_slow.pkl'
 
     # if not os.path.isfile(fastslow_filename):
     #     train_algorithms(copy.copy(algorithm))
 
     # print 'Testing algorithms'
+    fastslow_model_pkl = open(fastslow_filename, 'rb')
+    fastslow_model = pickle.load(fastslow_model_pkl)
+    fastslow_model_pkl.close()
 
     noGPS_model_pkl = open(noGPS_filename, 'rb')
     noGPS_model = pickle.load(noGPS_model_pkl)
     noGPS_model_pkl.close()
 
-    noGPS_predictions = noGPS_model.predict(np.array(df_test.iloc[:, 0:15]))
-    probabilities = noGPS_model.predict_proba(np.array(df_test.iloc[:, 0:15]))
+    fast_model_pkl = open(fast_filename, 'rb')
+    fast_model = pickle.load(fast_model_pkl)
+    fast_model_pkl.close()
+
+    slow_model_pkl = open(slow_filename, 'rb')
+    slow_model = pickle.load(slow_model_pkl)
+    slow_model_pkl.close()
+
+    df_fastslow = df_test[df_test['GPS Speed'] != -1]
+    fastslow_predictions = list()
+
+    if len(np.array(df_fastslow['GPS Speed']).reshape(-1, 1)) > 0:
+        fastslow_predictions = fastslow_model.predict(np.array(df_fastslow['GPS Speed']).reshape(-1, 1))
+        fastslow_probabilities = fastslow_model.predict_proba(np.array(df_fastslow['GPS Speed']).reshape(-1, 1))
+
+    df_noGPS = df_test[df_test['GPS Speed'] == -1]
+    probabilities = []
+    if df_noGPS.empty:
+        predictions = fastslow_predictions
+        probabilities = fastslow_probabilities
+        accgps = ['Acc + GPS'] * len(predictions)
+
+    else:
+        noGPS_predictions = noGPS_model.predict(np.array(df_noGPS.iloc[:, 0:15]))
+        noGPS_probabilities = noGPS_model.predict_proba(np.array(df_test.iloc[:, 0:15]))
+
+        predictions = list()
+        accgps = list()
+        fastslow_index = 0
+        noGPS_index = 0
+        for i, row in df_test.iterrows():
+            if i in df_fastslow.index:
+                predictions.append(fastslow_predictions[fastslow_index])
+                probabilities.append(fastslow_probabilities[fastslow_index])
+                accgps.append('Acc + GPS')
+                fastslow_index += 1
+            elif i in df_noGPS.index:
+                predictions.append(noGPS_predictions[noGPS_index])
+                probabilities.append(noGPS_probabilities[noGPS_index])
+                accgps.append('Just Acc')
+                noGPS_index += 1
+
+    slow_preds = list()
+    fast_preds = list()
+    for pred_num, fastslow_pred in enumerate(predictions):
+        if fastslow_pred == 'Slow':
+            slow_preds.append(df_test.iloc[pred_num].tolist()[0:18])
+        elif fastslow_pred == 'Fast':
+            fast_preds.append(df_test.iloc[pred_num].tolist()[0:18])
+
+    if len(fast_preds) > 0:
+        fast_predictions = fast_model.predict(np.array(fast_preds))
+        fast_probabilities = fast_model.predict_proba(np.array(fast_preds))
+    if len(slow_preds) > 0:
+        slow_predictions = slow_model.predict(np.array(slow_preds))
+        slow_probabilities = slow_model.predict_proba(np.array(slow_preds))
+
+    fast_index = 0
+    slow_index = 0
+    probabilities = [i.tolist() for i in probabilities]
+    for pred_num, fastslow_pred in enumerate(predictions):
+        if fastslow_pred == 'Slow':
+            predictions[pred_num] = slow_predictions[slow_index]
+            probabilities[pred_num] = slow_probabilities[slow_index]
+            slow_index += 1
+        elif fastslow_pred == 'Fast':
+            predictions[pred_num] = fast_predictions[fast_index]
+            probabilities[pred_num] = fast_probabilities[fast_index]
+            fast_index += 1
 
     primary_probabilities = list()
     primary_predictions = list()
     secondary_probabilities = list()
     secondary_predictions = list()
-
     for row, row_prob in enumerate(probabilities):
         pairs = [(i, row_prob[i]) for i in range(len(row_prob))]  # (index, prob) for each class for data point i
         pairs.sort(key=itemgetter(1), reverse=True)  # Sort list of tuples based on prob value
-
         primary_predictions.append(noGPS_model.classes_[pairs[0][0]])
         primary_probabilities.append(pairs[0][1])
         secondary_predictions.append(noGPS_model.classes_[pairs[1][0]])
         secondary_probabilities.append(pairs[1][1])
-
-    predictions = list()
-    accgps = list()
-    noGPS_index = 0
-    for i, row in df_test.iterrows():
-        predictions.append(noGPS_predictions[noGPS_index])
-        accgps.append('Just Acc')
-        noGPS_index += 1
 
     predictions = np.append([predictions], [df_test['Start'].values], axis=0)
     predictions = np.append(predictions, [df_test['End'].values], axis=0)

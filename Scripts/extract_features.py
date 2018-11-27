@@ -45,7 +45,7 @@ def euclidean_distance(x, y, z):
     return euclid
 
 
-def parse_data(window_size, time, x, y, z, start, end, activity, filename, cur_file, writer):
+def parse_data(window_size, time, x, y, z, gps, avggps, stddistance, start, end, activity, filename, cur_file, writer):
     """Calculates features and writes them to a file.
 
     Given a window of data, calculates features and writes them to the features file
@@ -116,7 +116,10 @@ def parse_data(window_size, time, x, y, z, start, end, activity, filename, cur_f
                                 len(e_valleys),
                                 avg_valleys_e,
                                 stdev_valleys_e,
-                                axis_overlap]
+                                axis_overlap,
+                                most_common(gps),
+                                most_common(avggps),
+                                most_common(stddistance)]
             cur_features_all.extend([activity_mode(activity), start, end])
 
             writer.writerow(cur_features_all)
@@ -138,6 +141,9 @@ def parse_data(window_size, time, x, y, z, start, end, activity, filename, cur_f
                         avg_valleys_e,
                         stdev_valleys_e,
                         axis_overlap,
+                        most_common(gps),
+                        most_common(avggps),
+                        most_common(stddistance),
                         time[0], time[len(time) - 1]]
 
         writer.writerow(cur_features)

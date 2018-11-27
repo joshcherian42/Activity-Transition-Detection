@@ -20,6 +20,9 @@ features_header = ['Avg Jerk E',
                    'Average Valleys E',
                    'Standard Deviation Valleys E',
                    'Axis Overlap',
+                   'GPS Speed',
+                   'Average GPS Speed',
+                   'Standard Distance',
                    'Activity',
                    'Start', 'End']
 
@@ -44,7 +47,9 @@ def process_file(window_size, cur_file):
     X = raw_data["Accelerometer_X"]
     Y = raw_data["Accelerometer_Y"]
     Z = raw_data["Accelerometer_Z"]
-
+    GPS = raw_data["Speed"]
+    avgGPS = raw_data["Avg_Speed"]
+    stddistance = raw_data["Standard_Distance"]
     activity = raw_data["Activity"]
 
     window_time = 0
@@ -57,6 +62,9 @@ def process_file(window_size, cur_file):
                                         X[cur_window_time:window_time],
                                         Y[cur_window_time:window_time],
                                         Z[cur_window_time:window_time],
+                                        GPS[cur_window_time:window_time],
+                                        avgGPS[cur_window_time:window_time],
+                                        stddistance[cur_window_time:window_time],
                                         T[cur_window_time],
                                         T[window_time],
                                         activity[cur_window_time:window_time],
