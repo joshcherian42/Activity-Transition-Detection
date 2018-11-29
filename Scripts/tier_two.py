@@ -3,11 +3,17 @@ import csv
 from datetime import datetime
 import settings
 import travel_logs
+from hyperopt import fmin, tpe, hp, STATUS_OK, Trials, space_eval
+import generate_models
+import shutil
 
+count = 0
+best = 0
+best_params = {}
 # Generate features for 1 person given a list of their phase 1 output files in time order and the travel log as phase 2 raw file
 # File names are relative to settings.phase_1_out and settings.phase_2_raw
 # Also takes the number of pre windows and post windows to generate the probability features for
-def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_windows):
+def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_windows, raw_features):
     window_data = []
 
     for phase_1_file in phase_1_out_files:
@@ -33,7 +39,7 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
         point['primary_class_change'] = window_data[i]['Primary Prediction'] != window_data[i - 1]['Primary Prediction']
         point['secondary_class_change'] = window_data[i]['Secondary Prediction'] != window_data[i - 1]['Secondary Prediction']
 
-        for j in range(i-pre_windows, i):
+        for j in range(i - pre_windows, i):
             point_idx = 'n-' + str(i - j) + '_'
             window = window_data[j]
             point[point_idx + 'primary_proba'] = float(window['Primary Probability'])
@@ -53,7 +59,7 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
         data_points.append(point)
 
     # Change output class to 1 if it is a transition. Remove if it's more than 5 min from a transition time
-    transition_times = travel_logs.get_transition_times_from_file(os.path.join(settings.phase_2_raw, phase_2_raw_file))
+    transition_times = travel_logs.get_transition_times_from_file(os.path.join(raw_features, phase_2_raw_file))
     data_idx = 0
     for i, transition_time in enumerate(transition_times):
         while data_idx < len(data_points):
@@ -66,7 +72,7 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
                 diff2 = data_points[data_idx]['time'] - transition_times[i - 1] # Time diff to previous transition
                 diff2 = diff2.total_seconds()
 
-            if abs(diff) > 300 and abs(diff2) > 300:
+            if abs(diff) > 900 and abs(diff2) > 900:
                 data_points.pop(data_idx)
                 continue
 
@@ -94,21 +100,76 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
         for point in data_points:
             writer.writerow([point[key] for key in header])
 
+
+def subset_selection(params):
+    global best, count, best_params
+    count += 1
+
+    print 'Iteration', count
+    print 'Current Parameters:', params
+
+    pre_windows = params['pre_wind']
+    post_windows = params['post_wind']
+    learn_rate = params['learning_rate']
+    n_estimators = params['n_estimators']
+    max_depth = params['max_depth']
+
+    paths = []
+    base_name = ''
+    for subdir, dirs, files in os.walk(settings.phase_1_output):
+        for cur_file in sorted(files, key=settings.natural_keys):
+            if cur_file.endswith('.csv'):
+                cur_base_name = '_'.join(cur_file.split('_')[:-3])  # Removes _YYYY-MM-DD_Hr_H.csv
+                if base_name == '':
+                    base_name = cur_base_name
+                if cur_base_name != base_name:  # Changed to a new user
+                    if os.path.isfile(settings.phase_2_raw_subset + "/" + base_name + '.csv'):
+                        generate_features(paths, base_name + '.csv', pre_windows, post_windows, settings.phase_2_raw_subset)
+                    base_name = cur_base_name
+                    paths = [cur_file]
+                else:
+                    paths.append(cur_file)
+    f_measure = generate_models.generate_models(learn_rate, n_estimators, max_depth)
+    shutil.rmtree(settings.phase_2_features)
+    os.makedirs(settings.phase_2_features)
+    print ''
+    return {'loss': -f_measure, 'status': STATUS_OK}
+
+
 settings.init()
-paths = []
-pre_windows = 4
-post_windows = 4
-base_name = ''
-for subdir, dirs, files in os.walk(settings.phase_1_output):
-    for cur_file in sorted(files, key=settings.natural_keys):
-        if cur_file.endswith('.csv'):
-            cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
-            if base_name == '':
-                base_name = cur_base_name
-            if cur_base_name != base_name: # Changed to a new user
-                generate_features(paths, base_name + '.csv', pre_windows, post_windows)
-                base_name = cur_base_name
-                paths = [cur_file]
-            else:
-                paths.append(cur_file)
+
+
+space = {
+    'pre_wind': hp.choice('previous_windows', range(1, 20)),
+    'post_wind': hp.choice('post_windows', range(1, 20)),
+    'learning_rate': hp.uniform('learn_rate', 0.01, 2),
+    'n_estimators': hp.choice('num_trees', range(10, 1000)),
+    'max_depth': hp.choice('depth', range(1, 5))
+}
+
+trial = Trials()
+best = fmin(subset_selection, space, algo=tpe.suggest, max_evals=50, trials=trial)
+# print 'best:', best
+
+best_params = space_eval(space, best)
+print 'best:', best_params
+
+
+# pre_windows = 2
+# post_windows = 1
+# paths = []
+# base_name = ''
+# for subdir, dirs, files in os.walk(settings.phase_1_output):
+#     for cur_file in sorted(files, key=settings.natural_keys):
+#         if cur_file.endswith('.csv'):
+#             cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
+#             if base_name == '':
+#                 base_name = cur_base_name
+#             if cur_base_name != base_name: # Changed to a new user
+#                 if os.path.isfile(settings.phase_2_raw + "/" + base_name + '.csv'):
+#                     generate_features(paths, base_name + '.csv', pre_windows, post_windows, settings.phase_2_raw)
+#                 base_name = cur_base_name
+#                 paths = [cur_file]
+#             else:
+#                 paths.append(cur_file)
 

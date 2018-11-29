@@ -38,6 +38,8 @@ def init():
     # Phase 2
     global phase_2_raw
     phase_2_raw = os.getcwd() + "/Data/phase_2/raw"
+    global phase_2_raw_subset
+    phase_2_raw_subset = os.getcwd() + "/Data/phase_2/raw_subset"
     global phase_2_features
     phase_2_features = os.getcwd() + "/Data/phase_2/features"
     global phase_2_output

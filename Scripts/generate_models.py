@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score
 
 from operator import itemgetter
 
+
 def get_confusion_matrix(y_predict, y_actual, margin, remove_fp_in_margin):
     tp = 0
     fp = 0
@@ -67,6 +68,7 @@ def get_confusion_matrix(y_predict, y_actual, margin, remove_fp_in_margin):
 
     return {'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn}
 
+
 def print_confusion_matrix(m):
     print 'TP:', m['tp']
     print 'FP:', m['fp']
@@ -76,15 +78,20 @@ def print_confusion_matrix(m):
     precision = float(m['tp']) / (m['tp'] + m['fp'])
     print 'Recall:', recall
     print 'Precision:', precision
-    print 'f-score:', 2*precision*recall / (precision + recall)
+    f_score = 2 * precision * recall / (precision + recall)
+    print 'f-score:', f_score
+    return f_score
 
-def generate_models():
+
+def generate_models(learn_rate, num_trees, depth):
     df = pd.DataFrame()
     for subdir, dirs, files in os.walk(settings.phase_2_features):
         for cur_file in sorted(files, key=settings.natural_keys):
             temp_df = pd.read_csv(os.path.join(subdir, cur_file))
             df = pd.concat([df, temp_df], ignore_index=True)
     times = df['time'].values
+    #print list(df.columns.values)
+    # df = df.drop('Unnamed: 0', axis=1)
     df = df.drop('time', axis=1)
     #df.to_csv('all_features.csv')
     labels = df.drop('output', axis=1).keys().values
@@ -93,10 +100,9 @@ def generate_models():
     y_predict_all = [0 for i in range(len(y))]
 
     #clf = RandomForestClassifier(random_state=42)
-    clf = GradientBoostingClassifier(random_state=42, learning_rate=0.5)
+    clf = GradientBoostingClassifier(random_state=42, learning_rate=learn_rate, n_estimators=num_trees, max_depth=depth)
     #clf = AdaBoostClassifier(random_state=42)
     skf = StratifiedKFold(n_splits=5, random_state=42)
-
     for train_index, test_index in skf.split(x, y):
         x_train, x_test = x[train_index], x[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -127,8 +133,10 @@ def generate_models():
                 l_idx = max(0, i - delta)
                 r_idx = min(i + delta, len(y_predict_all) - 1)
 
-    confusion_matrix = get_confusion_matrix(y_predict_all, y, 10, True)
-    print_confusion_matrix(confusion_matrix)
+    confusion_matrix = get_confusion_matrix(y_predict_all, y, 23, True)
+    print total_dist / float(sum(y_predict_all))
+
+    return print_confusion_matrix(confusion_matrix)
 
     # with open('temp.csv', 'w+') as f:
     #     for i in range(len(y_predict_all)):
@@ -136,10 +144,11 @@ def generate_models():
 
     # for k in dists:
     #     print k, dists[k]
-    print total_dist / float(sum(y_predict_all))
+
 
 # settings.init()
 # generate_models()
+
 
 def pickle_write(filename, model):
     """Save model to disk
