@@ -27,25 +27,28 @@ def init():
 
     # Phase 1
     global phase_1_raw
-    phase_1_raw = os.getcwd() + "/Data/phase_1/raw"
+    phase_1_raw = os.path.join(os.getcwd(), "Data", "phase_1", "raw")
     global phase_1_features
-    phase_1_features = os.getcwd() + "/Data/phase_1/features"
+    phase_1_features = os.path.join(os.getcwd(), "Data", "phase_1", "features")
     global phase_1_output
-    phase_1_output = os.getcwd() + "/Data/phase_1/output"
+    phase_1_output = os.path.join(os.getcwd(), "Data", "phase_1", "output")
     global models
-    models = os.getcwd() + "/Data/models"
+    models = os.path.join(os.getcwd(), "Data", "models")
+    global phase_1_window_size_millis
+    phase_1_window_size_millis = 13635
 
     # Phase 2
     global phase_2_raw
-    phase_2_raw = os.getcwd() + "/Data/phase_2/raw"
+    phase_2_raw = os.path.join(os.getcwd(), "Data", "phase_2", "raw")
     global phase_2_raw_subset
-    phase_2_raw_subset = os.getcwd() + "/Data/phase_2/raw_subset"
+    phase_2_raw_subset = os.path.join(os.getcwd(), "Data", "phase_2", "raw_subset")
     global phase_2_features
-    phase_2_features = os.getcwd() + "/Data/phase_2/features"
+    phase_2_features = os.path.join(os.getcwd(), "Data", "phase_2", "features")
     global phase_2_output
-    phase_2_output = os.getcwd() + "/Data/phase_2/output"
+    phase_2_output = os.path.join(os.getcwd(), "Data", "phase_2", "output")
+    global phase_2_remove_window_size_secs
+    phase_2_remove_window_size_secs = 900
 
-    # Fix these fucking things
     global activity_var_names
     activity_var_names = ['Run', 'Walk', 'Drive', 'Bike', 'Sed']
     global activity_names

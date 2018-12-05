@@ -65,14 +65,13 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
         while data_idx < len(data_points):
             diff = data_points[data_idx]['time'] - transition_time # Time diff to next transition
             diff = diff.total_seconds()
-            # print diff.total_seconds()
-            # print abs(diff.total_seconds()) > 300
             diff2 = 301
             if i != 0:
                 diff2 = data_points[data_idx]['time'] - transition_times[i - 1] # Time diff to previous transition
                 diff2 = diff2.total_seconds()
 
-            if abs(diff) > 900 and abs(diff2) > 900:
+            # Remove data more than this many seconds away from a transition
+            if abs(diff) > settings.phase_2_remove_window_size_secs and abs(diff2) > settings.phase_2_remove_window_size_secs:
                 data_points.pop(data_idx)
                 continue
 
@@ -98,10 +97,16 @@ def generate_features(phase_1_out_files, phase_2_raw_file, pre_windows, post_win
 
         writer.writerow(header)
         for point in data_points:
+            point['time'] = (point['time'] - datetime(1970,1,1)).total_seconds() # Convert to seconds since epoch
             writer.writerow([point[key] for key in header])
 
 
-def subset_selection(params):
+def hyperparameter_tuning(params):
+    # Clear features directory
+    filelist = [ f for f in os.listdir(settings.phase_2_features) ]
+    for f in filelist:
+        os.remove(os.path.join(settings.phase_2_features, f))
+
     global best, count, best_params
     count += 1
 
@@ -123,53 +128,62 @@ def subset_selection(params):
                 if base_name == '':
                     base_name = cur_base_name
                 if cur_base_name != base_name:  # Changed to a new user
-                    if os.path.isfile(settings.phase_2_raw_subset + "/" + base_name + '.csv'):
+                    if os.path.isfile(settings.phase_2_raw_subset + os.sep + base_name + '.csv'):
                         generate_features(paths, base_name + '.csv', pre_windows, post_windows, settings.phase_2_raw_subset)
                     base_name = cur_base_name
                     paths = [cur_file]
                 else:
                     paths.append(cur_file)
-    f_measure = generate_models.generate_models(learn_rate, n_estimators, max_depth)
-    shutil.rmtree(settings.phase_2_features)
-    os.makedirs(settings.phase_2_features)
+    f_measure = generate_models.generate_models(learn_rate, n_estimators, max_depth, False)
     print ''
     return {'loss': -f_measure, 'status': STATUS_OK}
 
+def tune_hyperparameters():
+    space = {
+        'pre_wind': hp.choice('previous_windows', range(1, 20)),
+        'post_wind': hp.choice('post_windows', range(1, 20)),
+        'learning_rate': hp.uniform('learn_rate', 0.01, 2),
+        'n_estimators': hp.choice('num_trees', range(10, 1000)),
+        'max_depth': hp.choice('depth', range(1, 5))
+    }
+
+    trial = Trials()
+    best = fmin(hyperparameter_tuning, space, algo=tpe.suggest, max_evals=50, trials=trial)
+    # print 'best:', best
+
+    best_params = space_eval(space, best)
+    print 'best:', best_params
+
+    return best_params
+
+# Genreates features for testing the models. Does not use the same data as hyperparameter tuning
+def generate_and_write_features(best_params):
+    # Clear features directory
+    filelist = [ f for f in os.listdir(settings.phase_2_features) ]
+    for f in filelist:
+        os.remove(os.path.join(settings.phase_2_features, f))
+
+    pre_windows = best_params['pre_wind']
+    post_windows = best_params['post_wind']
+    paths = []
+    base_name = ''
+    for subdir, dirs, files in os.walk(settings.phase_1_output):
+        for cur_file in sorted(files, key=settings.natural_keys):
+            if cur_file.endswith('.csv'):
+                cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
+                if base_name == '':
+                    base_name = cur_base_name
+                if cur_base_name != base_name: # Changed to a new user
+                    if os.path.isfile(settings.phase_2_raw + os.sep + base_name + '.csv'):
+                        generate_features(paths, base_name + '.csv', pre_windows, post_windows, settings.phase_2_raw)
+                    base_name = cur_base_name
+                    paths = [cur_file]
+                else:
+                    paths.append(cur_file)
 
 settings.init()
-
-
-space = {
-    'pre_wind': hp.choice('previous_windows', range(1, 20)),
-    'post_wind': hp.choice('post_windows', range(1, 20)),
-    'learning_rate': hp.uniform('learn_rate', 0.01, 2),
-    'n_estimators': hp.choice('num_trees', range(10, 1000)),
-    'max_depth': hp.choice('depth', range(1, 5))
-}
-
-trial = Trials()
-best = fmin(subset_selection, space, algo=tpe.suggest, max_evals=50, trials=trial)
-# print 'best:', best
-
-best_params = space_eval(space, best)
-print 'best:', best_params
-
-
-# pre_windows = 2
-# post_windows = 1
-# paths = []
-# base_name = ''
-# for subdir, dirs, files in os.walk(settings.phase_1_output):
-#     for cur_file in sorted(files, key=settings.natural_keys):
-#         if cur_file.endswith('.csv'):
-#             cur_base_name = '_'.join(cur_file.split('_')[:-3]) # Removes _YYYY-MM-DD_Hr_H.csv
-#             if base_name == '':
-#                 base_name = cur_base_name
-#             if cur_base_name != base_name: # Changed to a new user
-#                 if os.path.isfile(settings.phase_2_raw + "/" + base_name + '.csv'):
-#                     generate_features(paths, base_name + '.csv', pre_windows, post_windows, settings.phase_2_raw)
-#                 base_name = cur_base_name
-#                 paths = [cur_file]
-#             else:
-#                 paths.append(cur_file)
-
+# best_params = tune_hyperparameters() # This takes a while to run so only uncomment to calculate new hyperparams and then change the values below so everything runs faster
+best_params = {'n_estimators': 65, 'pre_wind': 4, 'learning_rate': 1.0821127215474642, 'max_depth': 3, 'post_wind': 10} # Tuned hyperparams
+# best_params = {'n_estimators': 100, 'pre_wind': 10, 'learning_rate': 0.1, 'max_depth': 3, 'post_wind': 10} # Default hyperparams
+generate_and_write_features(best_params)
+generate_models.generate_models(best_params['learning_rate'], best_params['n_estimators'], best_params['max_depth'], True)

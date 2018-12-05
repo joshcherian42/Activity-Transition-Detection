@@ -2,6 +2,7 @@ import settings
 import os
 from datetime import datetime
 
+# Parses travel logs and returns the transition times for the file
 # File path is absolute file path
 def get_transition_times_from_file(file_path):
     transition_times = set()
