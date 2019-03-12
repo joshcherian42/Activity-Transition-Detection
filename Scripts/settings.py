@@ -28,6 +28,8 @@ def init():
     # Phase 1
     global phase_1_raw
     phase_1_raw = os.path.join(os.getcwd(), "Data", "phase_1", "raw")
+    global phase_1_processed
+    phase_1_processed = os.path.join(os.getcwd(), "Data", "phase_1", "processed")
     global phase_1_features
     phase_1_features = os.path.join(os.getcwd(), "Data", "phase_1", "features")
     global phase_1_output
