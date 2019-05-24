@@ -45,7 +45,7 @@ def euclidean_distance(x, y, z):
     return euclid
 
 
-def parse_data(window_size, time, x, y, z, gps, avggps, stddistance, start, end, activity, filename, cur_file, writer):
+def parse_data(window_size, time, x, y, z, start, end, activity, filename, cur_file, writer):
     """Calculates features and writes them to a file.
 
     Given a window of data, calculates features and writes them to the features file
@@ -98,9 +98,7 @@ def parse_data(window_size, time, x, y, z, gps, avggps, stddistance, start, end,
     # Calculate features based on csv_lines
     if activity.size != 0:  # Training Data
         cur_activity = activity_mode(activity)
-        if (cur_activity != '' and
-           (0.9 * settings.sampling_rate * window_size) / 1000 < len(time) and
-           (1.1 * settings.sampling_rate * window_size) / 1000 > len(time)):
+        if (cur_activity != ''):
 
             cur_features_all = [avg_jerk(euclid, time),
                                 avg_height_e,
@@ -116,10 +114,7 @@ def parse_data(window_size, time, x, y, z, gps, avggps, stddistance, start, end,
                                 len(e_valleys),
                                 avg_valleys_e,
                                 stdev_valleys_e,
-                                axis_overlap,
-                                most_common(gps),
-                                most_common(avggps),
-                                most_common(stddistance)]
+                                axis_overlap]
             cur_features_all.extend([activity_mode(activity), start, end])
 
             writer.writerow(cur_features_all)
@@ -141,9 +136,6 @@ def parse_data(window_size, time, x, y, z, gps, avggps, stddistance, start, end,
                         avg_valleys_e,
                         stdev_valleys_e,
                         axis_overlap,
-                        most_common(gps),
-                        most_common(avggps),
-                        most_common(stddistance),
                         time[0], time[len(time) - 1]]
 
         writer.writerow(cur_features)

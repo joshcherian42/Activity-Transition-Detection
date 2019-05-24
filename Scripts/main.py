@@ -70,24 +70,25 @@ if __name__ == "__main__":
     # best_params = space_eval(space, best)
     # print tierone.main(best_params)
 
-    params = {'phase_one_window_size': 13635, 'classifier': {'max_features': 'auto', 'min_samples_split': 10, 'min_samples_leaf': 2, 'type': 'rf', 'n_estimators': 623}, 'phase_two_window_size': 8, 'scoring_function': 'log'}
+    params = {'phase_one_window_size': 5.12, 'phase_one_overlap_size': 1, 'classifier': {'max_features': 'auto', 'min_samples_split': 10, 'min_samples_leaf': 2, 'type': 'rf', 'n_estimators': 623}, 'phase_two_window_size': 8, 'scoring_function': 'log'}
     algorithm = params['classifier']
     tier_two_size = params['phase_two_window_size']
     scoring_function = params['scoring_function']
     phase_one = params['phase_one_window_size']
+    phase_one_overlap = params['phase_one_overlap_size']
 
     # generate_models.train_algorithms(copy.deepcopy(params))
     # generate_test_data.process_file(13635, 'Amaryllis_9.8.2017_2017-09-06_Hr_10.csv')
-    start_messages = ['Extracting Testing Features',
-                      'Classifying Activities']
-                      #'Correcting Classifications']
+    start_messages = ['Extracting Testing Features']
+                      # 'Classifying Activities']
+                      # 'Correcting Classifications']
 
-    functions = [[generate_test_data, 'main'],
-                 [tierone, 'gen_output']]
+    functions = [[generate_test_data, 'main']]
+                 # [tierone, 'gen_output']]
                  #[tierone, 'correct_output']]
 
-    function_args = [[phase_one],
-                     [algorithm]]
+    function_args = [[phase_one, phase_one_overlap]]
+                     # [algorithm]]
                      #[False if settings.trial == 'Team Data' else True, phase_one, tier_two_size, scoring_function, trial, paths]]
 
     for function_num, func in enumerate(functions):
