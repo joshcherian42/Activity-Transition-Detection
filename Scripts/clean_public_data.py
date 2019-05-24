@@ -3,6 +3,32 @@ import settings
 import csv
 
 
+def fog_dataset():
+    fog_header = ['Time_ms',
+                  'ank_accx', 'ank_accy', 'ank_accz',
+                  'thigh_accx', 'thigh_accy', 'thigh_accz',
+                  'trunk_accx', 'trunk_accy', 'trunk_accz',
+                  'gesture']
+
+    for subdir, dirs, files in os.walk(os.path.join(settings.phase_1_raw, "dataset_fog_release")):
+        for cur_file in sorted(files, key=settings.natural_keys):
+            if cur_file.endswith('.txt'):
+                with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(subdir, cur_file[:-4]) + '.csv', 'w') as csv_file:
+                    csv_writer = csv.writer(csv_file)
+                    csv_writer.writerow(fog_header)
+                    for line in dat_file:
+                        row = [field.strip() for field in line.split(' ')]
+
+                        if row[10] == '0':
+                            row[10] = 'Inactive'
+                        elif row[10] == '1':
+                            row[10] = 'Activity'
+                        elif row[10] == '2':
+                            row[10] = 'Freeze'
+
+                        csv_writer.writerow(row)
+
+
 def pamap_dat_to_csv():
     pamap_header = ['Time_s',
                     'gesture',
@@ -25,7 +51,8 @@ def pamap_dat_to_csv():
     for subdir, dirs, files in os.walk(os.path.join(settings.phase_1_raw, "PAMAP2_Dataset")):
         for cur_file in sorted(files, key=settings.natural_keys):
             if cur_file.endswith('.dat'):
-                with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(subdir, cur_file[:-4]) + '.csv', 'w') as csv_file:
+                print cur_file
+                with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(settings.phase_1_processed, "PAMAP2", subdir.split('/')[-1], cur_file[:-4]) + '.csv', 'w') as csv_file:
                     csv_writer = csv.writer(csv_file)
                     csv_writer.writerow(pamap_header)
                     for line in dat_file:
@@ -98,7 +125,7 @@ def opportunity_dat_to_csv():
                           'lla_magx', 'lla_magy', 'lla_magz',
                           'locomotion', 'gesture']
 
-    for subdir, dirs, files in os.walk(os.path.join(settings.phase_1_raw, "OpportunityChallengeDatasetTaskC")): #also works for OpportunityChallengeDatasetTasksAB_2011_08_12 and OpportunityChallengeLabeled
+    for subdir, dirs, files in os.walk(os.path.join(settings.phase_1_raw, "OpportunityChallengeDatasetTaskC")):  # also works for OpportunityChallengeDatasetTasksAB_2011_08_12 and OpportunityChallengeLabeled
         for cur_file in sorted(files, key=settings.natural_keys):
             if cur_file.endswith('.dat'):
                 with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(subdir, cur_file[:-4]) + '.csv', 'w') as csv_file:
@@ -163,4 +190,5 @@ def opportunity_dat_to_csv():
 if __name__ == "__main__":
     settings.init()
     # opportunity_dat_to_csv()
-    pamap_dat_to_csv()
+    # pamap_dat_to_csv()
+    fog_dataset()
