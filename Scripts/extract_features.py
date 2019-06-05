@@ -1,8 +1,6 @@
 import math
-import settings
 import itertools
 import operator
-import copy
 
 
 def median(sorted_x):
@@ -40,7 +38,7 @@ def euclidean_distance(x, y, z):
     """
 
     euclid = list()
-    for index in range(1, len(x)):
+    for index in range(0, len(x)):
         euclid.append(math.sqrt(math.pow(x[index], 2) + math.pow(y[index], 2) + math.pow(z[index], 2)))
     return euclid
 
@@ -390,7 +388,6 @@ def entropy(x):
     return -spectralentropy
 
 
-
 def side_height(x, time):
     """Calcultes the side height
 
@@ -482,7 +479,7 @@ def average(x):
         except ValueError:
             print cnt
         avg += cnt
-    return avg/len(x)
+    return avg / len(x)
 
 
 def stdev(x):

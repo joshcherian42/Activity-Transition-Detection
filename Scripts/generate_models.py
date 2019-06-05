@@ -1,26 +1,12 @@
 import settings
 import os
-import pickle
 import pandas as pd
-import numpy as np
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn import svm
-from sklearn import neighbors
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score
 from sklearn.feature_selection import VarianceThreshold
-from pandas.plotting import scatter_matrix
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 import math
-from datetime import datetime
 
-from operator import itemgetter
 
 # Gets the modified confusion matrix
 # If remove_fp_in_margin is true then the redundant predicted positives within the margin_sec window are not counted
@@ -89,6 +75,7 @@ def print_confusion_matrix(m):
     f_score = 2 * precision * recall / (precision + recall)
     print 'f-score:', f_score
 
+
 # Plots the stats for the modified confusion matrix with a window size of +/- seconds param
 def plot_stats(y_predict, y_actual, times, seconds, remove_fp_in_margin):
     recalls = []
@@ -111,7 +98,7 @@ def plot_stats(y_predict, y_actual, times, seconds, remove_fp_in_margin):
         if (precision + recall) == 0:
             fscore = 0
         else:
-            fscore = 2*precision*recall / (precision + recall)
+            fscore = 2 * precision*recall / (precision + recall)
 
         recalls.append(recall)
         precisions.append(precision)
@@ -187,7 +174,6 @@ def generate_models(learn_rate, num_trees, depth, should_plot):
         plot_stats(y_predict_all, y, times, 600, True)
         print 'Removed FP in window'
         print_confusion_matrix(m)
-        print
         print 'Kept FP in window'
         m = get_confusion_matrix(y_predict_all, y, times, 300, False)
         print_confusion_matrix(m)

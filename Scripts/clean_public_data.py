@@ -30,34 +30,21 @@ def fog_dataset():
 
 
 def pamap_dat_to_csv():
-    pamap_header = ['Time_s',
-                    'gesture',
-                    'hand_temp',
-                    'hand_accx_16g', 'hand_accy_16g', 'hand_accz_16g',
-                    'hand_accx_6g', 'hand_accy_6g', 'hand_accz_6g',
-                    'hand_gyrox', 'hand_gyroy', 'hand_gyroz',
-                    'hand_magx', 'hand_magy', 'hand_magz',
-                    'chest_temp',
-                    'chest_accx_16g', 'chest_accy_16g', 'chest_accz_16g',
-                    'chest_accx_6g', 'chest_accy_6g', 'chest_accz_6g',
-                    'chest_gyrox', 'chest_gyroy', 'chest_gyroz',
-                    'chest_magx', 'chest_magy', 'chest_magz',
-                    'ankle_temp',
-                    'ankle_accx_16g', 'ankle_accy_16g', 'ankle_accz_16g',
-                    'ankle_accx_6g', 'ankle_accy_6g', 'ankle_accz_6g',
-                    'ankle_gyrox', 'ankle_gyroy', 'ankle_gyroz',
-                    'ankle_magx', 'ankle_magy', 'ankle_magz']
 
-    for subdir, dirs, files in os.walk(os.path.join(settings.phase_1_raw, "PAMAP2_Dataset")):
+    for subdir, dirs, files in os.walk(settings.phase_1_raw):
         for cur_file in sorted(files, key=settings.natural_keys):
             if cur_file.endswith('.dat'):
                 print cur_file
-                with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(settings.phase_1_processed, "PAMAP2", subdir.split('/')[-1], cur_file[:-4]) + '.csv', 'w') as csv_file:
+                with open(os.path.join(subdir, cur_file)) as dat_file, open(os.path.join(settings.phase_1_processed, subdir.split('/')[-1], cur_file[:-4]) + '.csv', 'w') as csv_file:
+
                     csv_writer = csv.writer(csv_file)
-                    csv_writer.writerow(pamap_header)
+                    csv_writer.writerow(settings.raw_data_cols)
+
+                    cur_heart_rate = 0.0
+                    cur_rows = []
+                    
                     for line in dat_file:
                         row = [field.strip() for field in line.split(' ')]
-
                         # For one user data was spliced together due to data collection being aborted. So check timestamps to see if are consecutive
                         # Gesture
                         if row[1] == '0':
@@ -99,11 +86,24 @@ def pamap_dat_to_csv():
                         elif row[1] == '24':
                             row[1] = 'rope jumping'
 
-                        del_indeces = [2, 16, 17, 18, 19, 33, 34, 35, 36, 50, 51, 52, 53]  # Delete orientation columns, these were not collected. Also heart rate.
-                        for index in sorted(del_indeces, reverse=True):
-                            del row[index]
+                        data_indices = [0, 1, 2, 5, 6, 7, 22, 23, 24, 39, 40, 41]
+                        row = [row[i] for i in data_indices]
+
                         if 'NaN' not in row:
-                            csv_writer.writerow(row)
+                            if cur_heart_rate != 0:
+                                for new_row in cur_rows:
+
+                                    new_row[2] = round(cur_heart_rate + ((float(row[2]) - cur_heart_rate) / len(cur_rows)))  # linear interpolation
+
+                                    if 'NaN' not in new_row:
+                                        csv_writer.writerow(new_row)
+
+                                cur_rows = []
+
+                            cur_heart_rate = float(row[2])
+                            cur_rows.append(row)
+                        else:
+                            cur_rows.append(row)
 
 
 def opportunity_dat_to_csv():
@@ -187,8 +187,10 @@ def opportunity_dat_to_csv():
                         csv_writer.writerow(row)
 
 
-if __name__ == "__main__":
-    settings.init()
-    # opportunity_dat_to_csv()
-    # pamap_dat_to_csv()
-    fog_dataset()
+def clean_data():
+    if settings.dataset == 'PAMAP2':
+        pamap_dat_to_csv()
+    elif settings.dataset == 'Opportunity':
+        opportunity_dat_to_csv()
+    elif settings.dataset == 'FOG':
+        fog_dataset()
