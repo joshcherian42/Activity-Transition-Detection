@@ -235,11 +235,10 @@ def activity_mode(activities):
         if activity in act_types:
             act_types[activity] = act_types[activity] + 1
         else:
+
             act_types[activity] = 1
 
     activity = str(max(act_types, key=act_types.get)).lower().strip()
-    if (activity == "putting on a table"):
-        activity = "putting on table"
     return activity
 
 

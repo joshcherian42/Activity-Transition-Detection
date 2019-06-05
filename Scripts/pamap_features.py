@@ -19,7 +19,7 @@ def parse_data(raw_data, start_time, end_time, subject, writer):
     y_ankle = raw_data["ankle_accy_16g"][start_time:end_time]
     z_ankle = raw_data["ankle_accz_16g"][start_time:end_time]
     heart_rate = raw_data['heart_rate'][start_time:end_time]
-    activities = raw_data['gesture']
+    activities = raw_data['gesture'][start_time:end_time]
 
     cur_features = [  # Hand
                       mean(x_hand), mean(y_hand), mean(z_hand),
