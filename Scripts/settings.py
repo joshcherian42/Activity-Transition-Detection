@@ -36,6 +36,8 @@ def init(data):
     phase_1_processed = os.path.join(os.getcwd(), "Data", "phase_1", "processed", data)
     global phase_1_features
     phase_1_features = os.path.join(os.getcwd(), "Data", "phase_1", "features", data)
+    global phase_1_cross_val
+    phase_1_cross_val = os.path.join(os.getcwd(), "Data", "phase_1", "cross-validation", data)
     global phase_1_output
     phase_1_output = os.path.join(os.getcwd(), "Data", "phase_1", "output", data)
     global models

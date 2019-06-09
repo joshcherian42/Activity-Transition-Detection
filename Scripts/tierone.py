@@ -1,6 +1,6 @@
 import numpy as np
 import os
-import pandas as pd
+
 import csv
 from datetime import datetime
 import settings
@@ -104,3 +104,33 @@ def gen_output_window(algorithm, features_file, output_file):  # mueller_col, da
 
         writer.writerow([cur_activity, start_time, end_time, primary_prob, primary_pred, secondary_prob, secondary_pred])
     w.close()
+
+
+def cross_val_setup():
+    features = list()
+
+    if not os.path.exists(settings.phase_1_cross_val + '/Protocol/Test'):
+        os.makedirs(settings.phase_1_cross_val + '/Protocol/Test')
+        os.makedirs(settings.phase_1_cross_val + '/Protocol/Train')
+
+    for subdir, dirs, files in os.walk(settings.phase_1_features):
+        for cur_file in sorted(files, key=settings.natural_keys):
+            if 'Protocol' in subdir and cur_file.endswith('.csv'):
+                features.append((np.genfromtxt(subdir + "/" + cur_file, delimiter=',', dtype=None, names=True, unpack=True, encoding=None)).tolist())
+
+    # Create file with features for all subjects for k-fold CV
+    with open(settings.phase_1_cross_val + '/Protocol/allfeatures.csv', 'w') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(settings.features_header)
+        for subject in features:
+            csv_writer.writerows(subject)
+
+    # Create files with features for all but one subject for LOSO CV
+    for test_no, test_subject in enumerate(features):
+        with open(settings.phase_1_cross_val + '/Protocol/Test/train' + str(test_no) + '.csv', 'w') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(settings.features_header)
+
+            for train_no, train_subject in enumerate(features):
+                    if train_no != test_no:
+                        csv_writer.writerows(train_subject)
