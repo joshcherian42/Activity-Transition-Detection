@@ -25,6 +25,8 @@ def process_file(window_size, overlap_size, cur_file):
 
     T = [round(elem, 2) for elem in raw_data["Time_s"]]
 
+    max_heart_rate = max(raw_data['heart_rate'])
+    min_heart_rate = min(raw_data['heart_rate'])
     window_time = 0
     cur_window_time = window_time
 
@@ -32,7 +34,7 @@ def process_file(window_size, overlap_size, cur_file):
 
         if round(T[window_time] - T[cur_window_time], 2) >= float(window_size):
 
-            dataset.parse_data(raw_data, cur_window_time, window_time, cur_file.split("/")[-1][7:10], writer)
+            dataset.parse_data(raw_data, cur_window_time, window_time, cur_file.split("/")[-1][7:10], max_heart_rate, min_heart_rate, writer)
 
             window_time = cur_window_time
 
@@ -82,7 +84,6 @@ def extract_peaks(window_size, overlap_size):
     import_features(settings.dataset)
 
     # process_file(window_size, overlap_size, '/Users/joshcherian/Documents/GitHub/Activity-Transition-Detection/Data/phase_1/processed/PAMAP2/Protocol/subject101.csv')
-
 
     subprocess.check_call([settings.scripts + "/process_test_data.sh", str(window_size), str(overlap_size), settings.dataset, " ".join(get_file_names())])
 

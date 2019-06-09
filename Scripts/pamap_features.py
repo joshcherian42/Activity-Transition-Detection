@@ -6,7 +6,7 @@ import extract_features
 import math
 
 
-def parse_data(raw_data, start_time, end_time, subject, writer):
+def parse_data(raw_data, start_time, end_time, subject, max_heart_rate, min_heart_rate, writer):
 
     time = [round(elem, 2) for elem in raw_data["Time_s"]][start_time:end_time]
     x_hand = raw_data["hand_accx_16g"][start_time:end_time]
@@ -106,12 +106,13 @@ def parse_data(raw_data, start_time, end_time, subject, writer):
                       extract_features.energy(pairwise(extract_features.euclidean_distance(x_hand, y_hand, z_hand), extract_features.euclidean_distance(x_chest, y_chest, z_chest), axis3=extract_features.euclidean_distance(x_ankle, y_ankle, z_ankle))),
 
                       # Hearate
-                      normalized_mean(heart_rate, subject),
+                      normalized_mean(heart_rate, max_heart_rate, min_heart_rate, subject),
                       gradient(heart_rate),
 
                       extract_features.activity_mode(activities)]
 
     writer.writerow(cur_features)
+
 
 '''
 ****************************************************
@@ -130,6 +131,7 @@ def parse_data(raw_data, start_time, end_time, subject, writer):
      * Normalized Mean Heart Rate
      * Gradient Heart Rate
 '''
+
 
 def mean(vals):
 
@@ -233,33 +235,30 @@ def entropy(vals):
     return se
 
 
-def normalize(vals, lower, upper):
+def normalize(vals, maximum, minimum, lower, upper):
 
-    minimum = min(vals)
-    maximum = max(vals)
-
-    return [(upper - lower) * ((x - minimum) / (maximum - minimum)) + lower for x in vals]
+    return [(x - minimum) / (maximum - minimum) for x in vals]
 
 
-def normalized_mean(vals, subject):
+def normalized_mean(vals, max_value, min_value, subject):
     if subject == '101':
-        return mean(normalize(vals, 75, 193))
+        return mean(normalize(vals, max_value, min_value, 75, 193))
     elif subject == '102':
-        return mean(normalize(vals, 74, 195))
+        return mean(normalize(vals, max_value, min_value, 74, 195))
     elif subject == '103':
-        return mean(normalize(vals, 68, 189))
+        return mean(normalize(vals, max_value, min_value, 68, 189))
     elif subject == '104':
-        return mean(normalize(vals, 58, 196))
+        return mean(normalize(vals, max_value, min_value, 58, 196))
     elif subject == '105':
-        return mean(normalize(vals, 70, 194))
+        return mean(normalize(vals, max_value, min_value, 70, 194))
     elif subject == '106':
-        return mean(normalize(vals, 60, 194))
+        return mean(normalize(vals, max_value, min_value, 60, 194))
     elif subject == '107':
-        return mean(normalize(vals, 60, 197))
+        return mean(normalize(vals, max_value, min_value, 60, 197))
     elif subject == '108':
-        return mean(normalize(vals, 66, 188))
+        return mean(normalize(vals, max_value, min_value, 66, 188))
     elif subject == '109':
-        return mean(normalize(vals, 54, 189))
+        return mean(normalize(vals, max_value, min_value, 54, 189))
 
 
 def gradient(vals):
