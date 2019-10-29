@@ -64,16 +64,16 @@ def get_confusion_matrix(y_predict, y_actual, times, margin_sec, remove_fp_in_ma
 
 
 def print_confusion_matrix(m):
-    print 'TP:', m['tp']
-    print 'FP:', m['fp']
-    print 'FN:', m['fn']
-    print 'TN:', m['tn']
+    print('TP:', m['tp'])
+    print('FP:', m['fp'])
+    print('FN:', m['fn'])
+    print('TN:', m['tn'])
     recall = float(m['tp']) / (m['tp'] + m['fn'])
     precision = float(m['tp']) / (m['tp'] + m['fp'])
-    print 'Recall:', recall
-    print 'Precision:', precision
+    print('Recall:', recall)
+    print('Precision:', precision)
     f_score = 2 * precision * recall / (precision + recall)
-    print 'f-score:', f_score
+    print('f-score:', f_score)
 
 
 # Plots the stats for the modified confusion matrix with a window size of +/- seconds param
@@ -114,8 +114,10 @@ def plot_stats(y_predict, y_actual, times, seconds, remove_fp_in_margin):
     plt.legend()
     plt.show()
 
+
 # Generates the models and plots the modified confusion matrix graph with up to 10 minute margins if should_plot is True
-def generate_models(learn_rate, num_trees, depth, should_plot):
+# def generate_models(learn_rate, num_trees, depth, should_plot):
+def generate_models(should_plot):
     df = pd.DataFrame()
     for subdir, dirs, files in os.walk(settings.phase_2_features):
         for cur_file in sorted(files, key=settings.natural_keys):
@@ -123,7 +125,7 @@ def generate_models(learn_rate, num_trees, depth, should_plot):
             df = pd.concat([df, temp_df], ignore_index=True)
     times = [int(t) for t in df['time'].values]
     df = df.drop('time', axis=1)
-    #df.to_csv('all_features.csv')
+    # df.to_csv('all_features.csv')
     labels = df.drop('output', axis=1).keys().values
     x = df.drop('output', axis=1).values
     y = df['output']
@@ -145,8 +147,8 @@ def generate_models(learn_rate, num_trees, depth, should_plot):
         clf.fit(x_train, y_train)
         y_predict = clf.predict(x_test)
 
-        print "Predicted", sum(y_predict)
-        print "Actual", sum(y_test)
+        print("Predicted", sum(y_predict))
+        print("Actual", sum(y_test))
 
         for i in range(len(y_predict)):
             y_predict_all[test_index[i]] = y_predict[i]
@@ -172,9 +174,9 @@ def generate_models(learn_rate, num_trees, depth, should_plot):
     if (should_plot):
         plot_stats(y_predict_all, y, times, 600, False)
         plot_stats(y_predict_all, y, times, 600, True)
-        print 'Removed FP in window'
+        print('Removed FP in window')
         print_confusion_matrix(m)
-        print 'Kept FP in window'
+        print('Kept FP in window')
         m = get_confusion_matrix(y_predict_all, y, times, 300, False)
         print_confusion_matrix(m)
 

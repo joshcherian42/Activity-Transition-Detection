@@ -51,7 +51,7 @@ def init(data):
     global phase_2_raw_subset
     phase_2_raw_subset = os.path.join(os.getcwd(), "Data", "phase_2", "raw_subset")
     global phase_2_features
-    phase_2_features = os.path.join(os.getcwd(), "Data", "phase_2", "features")
+    phase_2_features = os.path.join(os.getcwd(), "Data", "phase_2", "features", data)
     global phase_2_output
     phase_2_output = os.path.join(os.getcwd(), "Data", "phase_2", "output")
     global phase_2_remove_window_size_secs

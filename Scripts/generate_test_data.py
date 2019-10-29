@@ -10,7 +10,7 @@ from importlib import import_module
 
 def process_file(window_size, overlap_size, cur_file):
 
-    print 'Extracting Testing Features for ' + cur_file + "\n"
+    print('Extracting Testing Features for ' + cur_file + "\n")
 
     features_file_write = cur_file.replace('processed', 'features')
     if os.path.isfile(features_file_write):
@@ -46,8 +46,8 @@ def process_file(window_size, overlap_size, cur_file):
             window_time += 1
 
     w.close()
-    print 'Done'
-    print ''
+    print('Done')
+    print('')
 
 
 def process_file_bash(cur_file, window_size, overlap_size, dataset):
@@ -63,7 +63,7 @@ def import_features(data):
 
     try:
         if dataset:
-            print 'already imported'
+            print('already imported')
             return
     except NameError:
         pass
@@ -90,7 +90,7 @@ def extract_peaks(window_size, overlap_size):
 
 def get_file_names():
     filenames = []
-    print settings.phase_1_processed
+    print(settings.phase_1_processed)
     for subdir, dirs, files in os.walk(settings.phase_1_processed):
         for cur_file in sorted(files, key=settings.natural_keys):
             if cur_file.endswith('.csv'):

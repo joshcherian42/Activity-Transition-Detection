@@ -1,11 +1,14 @@
 import numpy as np
 import os
-
+import pandas as pd
 import csv
 from datetime import datetime
 import settings
 import generate_models
 from shutil import copyfile
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 
 lag = 1000
 threshold = 10
@@ -25,7 +28,7 @@ def gen_output(algorithm):
         for cur_file in sorted(files, key=settings.natural_keys):
             if cur_file.endswith('.csv'):
 
-                print "Classifying Activities for " + cur_file[:-4] + "\n"
+                print("Classifying Activities for " + cur_file[:-4] + "\n")
 
                 output_file = settings.phase_1_output + "/" + cur_file
 
@@ -134,3 +137,45 @@ def cross_val_setup():
             for train_no, train_subject in enumerate(features):
                     if train_no != test_no:
                         csv_writer.writerows(train_subject)
+
+
+def hapt_genfeatures(users, user_indices, Y, clf, Y_proba, train_test):
+
+    for i, index in enumerate(user_indices[:-1]):
+        # print(test_users[i])
+        # print(type(test_users[i]))
+        filename = 'User_' + str(users[0].unique()[i]) + '.csv'
+        print('Creating:', filename)
+        # print(Y_test[index:user_indices[i + 1]])
+        user = pd.DataFrame()
+        user['Actual'] = Y[index:user_indices[i + 1]][0]
+        # user['Primary Prediction'] = Y_pred[index:user_indices[i + 1]][0]
+        user['Primary Prediction'] = [clf.classes_.tolist()[np.where(probabilities == sorted(probabilities)[-1])[0][0]] for probabilities in Y_proba[index:user_indices[i + 1]]]
+        user['Primary Probability'] = [max(probabilities) for probabilities in Y_proba[index:user_indices[i + 1]]]
+        user['Secondary Prediction'] = [clf.classes_.tolist()[np.where(probabilities == sorted(probabilities)[-2])[0][0]] for probabilities in Y_proba[index:user_indices[i + 1]]]
+        user['Secondary Probability'] = [sorted(probabilities)[-2] for probabilities in Y_proba[index:user_indices[i + 1]]]
+
+        user.to_csv(os.path.join(settings.phase_1_output, train_test, filename), index=False)
+
+
+def hapt_tierone():
+
+    train_users = pd.read_csv(os.path.join(settings.phase_1_features, 'Train', 'subject_id_train.txt'), sep=" ", header=None)
+    X_train = pd.read_csv(os.path.join(settings.phase_1_features, 'Train', 'X_train.txt'), sep=" ", header=None)
+    Y_train = pd.read_csv(os.path.join(settings.phase_1_features, 'Train', 'y_train.txt'), sep=" ", header=None)
+
+    test_users = pd.read_csv(os.path.join(settings.phase_1_features, 'Test', 'subject_id_test.txt'), sep=" ", header=None)
+    X_test = pd.read_csv(os.path.join(settings.phase_1_features, 'Test', 'X_test.txt'), sep=" ", header=None)
+    Y_test = pd.read_csv(os.path.join(settings.phase_1_features, 'Test', 'y_test.txt'), sep=" ", header=None)
+
+    clf = RandomForestClassifier(n_estimators=100)
+    clf.fit(X_train, Y_train.values.ravel())
+
+    Y_proba_train = clf.predict_proba(X_train)
+    Y_proba_test = clf.predict_proba(X_test)
+
+    user_indices_test = [test_users.loc[test_users[0] == index].index[0] for index in test_users[0].unique()]  # row_num of users
+    user_indices_train = [train_users.loc[train_users[0] == index].index[0] for index in train_users[0].unique()]  # row_num of users
+
+    hapt_genfeatures(test_users, user_indices_test, Y_test, clf, Y_proba_test, 'Test')
+    hapt_genfeatures(train_users, user_indices_train, Y_train, clf, Y_proba_train, 'Train')

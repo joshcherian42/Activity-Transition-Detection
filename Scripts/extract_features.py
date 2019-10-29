@@ -476,7 +476,7 @@ def average(x):
         try:
             cnt = float(cnt)
         except ValueError:
-            print cnt
+            print(cnt)
         avg += cnt
     return avg / len(x)
 
